@@ -35,6 +35,11 @@
   boot.kernelParams = [
     "drm.edid_firmware=DP-2:edid/LC49G95.bin"
   ];
+  
+  # Set RX 6900 XT as boot_vga (1st PCIe x16 slot)
+  services.udev.extraRules = ''
+    KERNEL=="card*", SUBSYSTEM=="drm", KERNELS=="0000:0d:00.0", TAG+="boot_vga"  
+  '';
 
   networking.hostName = "nixos"; # Define your hostname.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
@@ -65,9 +70,16 @@
   };
 
   # Setup SDDM.
-  services.displayManager.sddm.enable = true;
-  services.displayManager.sddm.wayland.enable = true;
-  services.displayManager.defaultSession = "hyprland-uwsm";
+  services.xserver.enable = true;
+  services.displayManager = {
+    sddm = {
+      enable = true;
+      theme = "catppuccin-mocha-mauve";
+      package = pkgs.kdePackages.sddm;
+    };
+    defaultSession = "hyprland-uwsm";
+  };
+
 
   # Enable CUPS to print documents.
   services.printing.enable = true;
@@ -138,6 +150,10 @@
     ripgrep
     eza
     ffmpeg
+    (catppuccin-sddm.override {
+      flavor = "mocha";
+      font = "JetBrainsMono Nerd Font";
+    })
   ];
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
