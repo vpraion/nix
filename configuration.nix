@@ -87,6 +87,7 @@
       kitty
     #  thunderbird
     ];
+    shell = pkgs.zsh;
   };
 
   # Install hyprland DE
@@ -95,6 +96,9 @@
     withUWSM = true;
     xwayland.enable = true;
   };
+  # Install zsh
+  programs.zsh.enable = true;
+
   # Install firefox.
   programs.firefox.enable = true;
   # Install Steam
