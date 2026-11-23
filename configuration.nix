@@ -2,7 +2,7 @@
 # your system. Help is available in the configuration.nix(5) man page, on
 # https://search.nixos.org/options and in the NixOS manual (`nixos-help`).
 
-{ config, pkgs, ... }:
+{ config, pkgs, inputs, ... }:
 
 {
   imports =
@@ -16,6 +16,25 @@
 
   # Use latest kernel.
   boot.kernelPackages = pkgs.linuxPackages_latest;
+  
+  # Disable automnatic zstd firmware compression.
+  hardware.firmwareCompression = "none";
+
+  # Load G9 Edid
+  hardware.firmware = [
+    (pkgs.linkFarm "g9-edid" [
+        {
+          name = "lib/firmware/edid/LC49G95.bin";
+          path = "${inputs.g9-edid}/edids/LC49G95.bin";
+        }
+      ]
+    )
+  ];
+  
+  # Put G9 Edid in DP-2 Output
+  boot.kernelParams = [
+    "drm.edid_firmware=DP-2:edid/LC49G95.bin"
+  ];
 
   networking.hostName = "nixos"; # Define your hostname.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.

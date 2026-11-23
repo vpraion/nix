@@ -1,5 +1,21 @@
 {
   "nodes": {
+    "g9-edid": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1779906648,
+        "narHash": "sha256-g/OyQ9zCZ9KC8s26ormnbA/+/oRoBV2LO3nhwVDaKWo=",
+        "owner": "vpraion",
+        "repo": "odysseyg9-linux-240hz-vrr-hdr-noflicker",
+        "rev": "32a5703a62e40d684ef21a32426aaa190b0b2588",
+        "type": "github"
+      },
+      "original": {
+        "owner": "vpraion",
+        "repo": "odysseyg9-linux-240hz-vrr-hdr-noflicker",
+        "type": "github"
+      }
+    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -38,6 +54,7 @@
     },
     "root": {
       "inputs": {
+        "g9-edid": "g9-edid",
         "home-manager": "home-manager",
         "nixpkgs": "nixpkgs"
       }

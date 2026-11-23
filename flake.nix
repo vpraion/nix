@@ -3,10 +3,14 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-
+    
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
+    };
+    g9-edid = {
+      url = "github:vpraion/odysseyg9-linux-240hz-vrr-hdr-noflicker";
+      flake = false;
     };
   };
 
@@ -14,6 +18,7 @@
     nixosConfigurations = {
       desktop = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
+        specialArgs = { inherit inputs; };
         modules = [
           ./hardware-configuration.nix
           ./configuration.nix
