@@ -40,4 +40,9 @@ in
     ".zshenv".source = config.lib.file.mkOutOfStoreSymlink "${dotfilesDir}/zsh/.zshenv";
     ".config/zsh".source = config.lib.file.mkOutOfStoreSymlink "${dotfilesDir}/zsh/.config/zsh";
   };
+
+  systemd.user.sessionVariables = {
+    PROTON_ENABLE_WAYLAND = "1";
+  };
 }
+
