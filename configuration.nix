@@ -131,11 +131,20 @@
   # Enable touchpad support (enabled default in most desktopManager).
   # services.libinput.enable = true;
 
+  virtualisation.docker = {
+    enable = true;
+
+    autoPrune = {
+      enable = true;
+      dates = "weekly";
+    };
+  };
+
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users."vini" = {
     isNormalUser = true;
     description = "Vini Praion";
-    extraGroups = [ "networkmanager" "wheel" ];
+    extraGroups = [ "networkmanager" "wheel" "docker"];
     packages = with pkgs; [
       kitty
       rofi
@@ -214,6 +223,7 @@
   # You can use https://search.nixos.org/ to find more packages (and options).
   environment.systemPackages = with pkgs; [
     git
+    docker-compose
     neovim
     wget
     zsh
