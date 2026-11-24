@@ -240,6 +240,7 @@
     nvtopPackages.full
     ncdu
     yazi
+    mergerfs
     (catppuccin-sddm.override {
       flavor = "mocha";
       font = "JetBrainsMono Nerd Font";
@@ -251,6 +252,57 @@
       nerd-fonts.jetbrains-mono
     ];
   };
+
+  fileSystems."/mnt/disks/hdd-1" = {
+    device = "/dev/disk/by-uuid/36eca03d-b304-4d80-8cbc-82aa92ddc0fe";
+    fsType = "ext4";
+    options = [
+      "defaults"
+      "nofail"
+    ];
+  };
+
+  fileSystems."/mnt/disks/hdd-2" = {
+    device = "/dev/disk/by-uuid/cda2c106-9904-419f-b1ad-93f5099273e3";
+    fsType = "ext4";
+    options = [
+      "defaults"
+      "nofail"
+    ];
+  };
+
+  fileSystems."/mnt/disks/hdd-3" = {
+    device = "/dev/disk/by-uuid/98bc5e11-b720-48eb-a871-7f976c5e03ec";
+    fsType = "ext4";
+    options = [
+      "defaults"
+      "nofail"
+    ];
+  };
+
+  fileSystems."/srv/media" = {
+    fsType = "fuse.mergerfs";
+    device = "/mnt/disks/hdd-*/media";
+    options = [
+      "defaults"
+      "allow_other"
+      "umask=0002" # 775 for folders (allows traversal), 664 for files
+      "use_ino"
+      "cache.files=partial"
+      "dropcacheonclose=true"
+      "category.create=epmfs"
+      "minfreespace=20G"
+      "moveonenospc=true"
+      "fsname=mergerfs-media"
+      "x-systemd.requires-mount-for=/mnt/disks"
+      "nofail"
+    ];
+  };
+
+  systemd.tmpfiles.rules = [
+    "d /mnt/disks 0775 root root -"
+    "d /srv/media 0755 vini users -"
+  ];
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
