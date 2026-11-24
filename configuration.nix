@@ -130,6 +130,7 @@
       hyprshot
       wl-clipboard
       kdePackages.dolphin
+      vesktop
     ];
     shell = pkgs.zsh;
   };
