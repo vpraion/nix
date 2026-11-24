@@ -106,6 +106,8 @@
     extraGroups = [ "networkmanager" "wheel" ];
     packages = with pkgs; [
       kitty
+      rofi
+      waybar
     ];
     shell = pkgs.zsh;
   };
@@ -149,10 +151,12 @@
     bat
     zoxide
     starship
-    stow
     ripgrep
     eza
     ffmpeg
+    python3Minimal
+    nvtopPackages.full
+    ncdu
     (catppuccin-sddm.override {
       flavor = "mocha";
       font = "JetBrainsMono Nerd Font";

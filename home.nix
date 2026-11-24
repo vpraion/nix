@@ -26,6 +26,7 @@ in
     # DE : Hyprland
     ".config/hypr".source = config.lib.file.mkOutOfStoreSymlink "${dotfilesDir}/hypr/.config/hypr";
     ".config/waybar".source = config.lib.file.mkOutOfStoreSymlink "${dotfilesDir}/hypr/.config/waybar";
+    ".config/rofi".source = config.lib.file.mkOutOfStoreSymlink "${dotfilesDir}/hypr/.config/rofi";
 
     # Terminal : Kitty
     ".config/kitty".source = config.lib.file.mkOutOfStoreSymlink "${dotfilesDir}/kitty/.config/kitty";
