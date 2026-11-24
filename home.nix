@@ -53,8 +53,17 @@ in
     kdePackages.breeze-icons
   ];
 
+  home.pointerCursor = {
+    gtk.enable = true;
+    x11.enable = true;
+    package = pkgs.kdePackages.breeze;
+    name = "breeze_cursors";
+    size = 32;
+  };
+
   systemd.user.sessionVariables = {
     PROTON_ENABLE_WAYLAND = "1";
+    PROTON_ENABLE_HDR = "1";
   };
 
 
