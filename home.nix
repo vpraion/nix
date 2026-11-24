@@ -42,8 +42,15 @@ in
     ".config/zsh".source = config.lib.file.mkOutOfStoreSymlink "${dotfilesDir}/zsh/.config/zsh";
   };
 
+
+  home.packages = with pkgs; [
+    kdePackages.breeze-icons
+  ];
+
   systemd.user.sessionVariables = {
     PROTON_ENABLE_WAYLAND = "1";
   };
+
+
 }
 

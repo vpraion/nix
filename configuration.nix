@@ -158,7 +158,7 @@
   };
   # Gamemode
   programs.gamemode.enable = true;
-  
+
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
 
