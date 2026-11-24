@@ -49,7 +49,26 @@
   # networking.proxy.noProxy = "127.0.0.1,localhost,internal.domain";
 
   # Enable networking
-  networking.networkmanager.enable = true;
+  networking.networkmanager = {
+    enable = true;
+    settings = {
+      "connection-10G" = {
+        "match-device" = "interface-name:enp5s0";
+        "ipv4.route-metric" = 10;
+        "ipv6.route-metric" = 10;
+      };
+      "connection-1G" = {
+        "match-device" = "interface-name:enp7s0";
+        "ipv4.route-metric" = 100;
+        "ipv6.route-metric" = 100;
+      };
+      "connection-WiFi" = {
+        "match-device" = "interface-name:wlp6s0";
+        "ipv4.route-metric" = 200;
+        "ipv6.route-metric" = 200;
+      };
+    };
+  };
 
   # Set your time zone.
   time.timeZone = "Europe/Paris";
