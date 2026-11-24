@@ -126,6 +126,9 @@
     enable = true;
     gamescopeSession.enable = true;
     remotePlay.openFirewall = true;
+    extraCompatPackages = [
+      pkgs.proton-ge-bin
+    ];
   };
   # Gamemode
   programs.gamemode.enable = true;
