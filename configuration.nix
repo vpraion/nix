@@ -127,6 +127,9 @@
       kitty
       rofi
       waybar
+      hyprshot
+      wl-clipboard
+      kdePackages.dolphin
     ];
     shell = pkgs.zsh;
   };
