@@ -155,6 +155,7 @@
       kdePackages.dolphin
       vesktop
       pavucontrol
+      haruna
     ];
     shell = pkgs.zsh;
     openssh.authorizedKeys.keys = [
