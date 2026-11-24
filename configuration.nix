@@ -131,6 +131,7 @@
       wl-clipboard
       kdePackages.dolphin
       vesktop
+      pavucontrol
     ];
     shell = pkgs.zsh;
   };
