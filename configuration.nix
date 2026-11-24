@@ -179,6 +179,7 @@
     python3Minimal
     nvtopPackages.full
     ncdu
+    yazi
     (catppuccin-sddm.override {
       flavor = "mocha";
       font = "JetBrainsMono Nerd Font";
