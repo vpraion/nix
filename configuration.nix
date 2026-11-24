@@ -128,6 +128,7 @@
       rofi
       waybar
       hyprshot
+      hyprpaper
       wl-clipboard
       kdePackages.dolphin
       vesktop
