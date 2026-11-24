@@ -34,11 +34,24 @@
   # Put G9 Edid in DP-2 Output
   boot.kernelParams = [
     "drm.edid_firmware=DP-2:edid/LC49G95.bin"
+    "acpi_encorce_resources=lax"
   ];
   
   # Set RX 6900 XT as boot_vga (1st PCIe x16 slot)
   services.udev.extraRules = ''
     KERNEL=="card*", SUBSYSTEM=="drm", KERNELS=="0000:0d:00.0", TAG+="boot_vga"  
+  '';
+
+  boot.extraModulePackages = with config.boot.kernelPackages; [
+    it87
+  ];
+
+  boot.kernelModules = [
+    "it87"
+  ];
+
+  boot.extraModprobeConfig = ''
+    options it87 ignore_resource_conflict=1 force_id=0x8688
   '';
 
   networking.hostName = "nixos"; # Define your hostname.
@@ -162,6 +175,26 @@
   };
   # Gamemode
   programs.gamemode.enable = true;
+  
+  # coolercontrol
+  programs.coolercontrol.enable = true;
+
+  # OpenRGB
+  services.hardware.openrgb = {
+    enable = true;
+    package = pkgs.openrgb-with-all-plugins;
+    motherboard = "amd";
+  };
+  systemd.services.openrgb = {
+    serviceConfig = {
+      BindPaths = [
+        "/home/vini/.config/OpenRGB:/var/lib/OpenRGB"
+      ];
+    };
+  };
+
+  # Get RAM/Mobo RGB access without sudo
+  hardware.i2c.enable = true;
 
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;

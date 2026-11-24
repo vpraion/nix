@@ -40,6 +40,12 @@ in
     # Shell : zsh
     ".zshenv".source = config.lib.file.mkOutOfStoreSymlink "${dotfilesDir}/zsh/.zshenv";
     ".config/zsh".source = config.lib.file.mkOutOfStoreSymlink "${dotfilesDir}/zsh/.config/zsh";
+
+    # Fan handling : coolercontrol
+    ".config/org.coolercontrol.CoolerControl".source = config.lib.file.mkOutOfStoreSymlink "${dotfilesDir}/coolercontrol/.config/org.coolercontrol.CoolerControl";
+    
+    # RGB handling : OpenRGB
+    ".config/OpenRGB".source = config.lib.file.mkOutOfStoreSymlink "${dotfilesDir}/OpenRGB/.config/OpenRGB";
   };
 
 
