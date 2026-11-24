@@ -163,6 +163,17 @@
     })
   ];
 
+  fonts = {
+    packages = with pkgs; [
+      nerd-fonts.jetbrains-mono
+    ];
+    fontconfig = {
+      defaultFonts = {
+        monospace = [ "JetBrainsMono Nerd Font" ];
+      };
+    };
+  };
+
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
   # Some programs need SUID wrappers, can be configured further or are
