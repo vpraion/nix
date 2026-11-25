@@ -1,4 +1,4 @@
-{ ... }:
+{ pkgs, ... }:
 
 {
   # Realtime Kit priority daemon for low-latency audio scheduling.
@@ -14,6 +14,11 @@
     alsa.support32Bit = true;
     pulse.enable = true;
   };
+
+  # MPRIS media player CLI controller for media keys and Waybar.
+  environment.systemPackages = with pkgs; [
+    playerctl
+  ];
 
   # Common Unix Printing System (CUPS).
   services.printing.enable = true;

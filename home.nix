@@ -84,6 +84,13 @@ in
   };
 
   # ===========================================================================
+  # MPRIS Media Player Daemon
+  # Tracks the most recently active MPRIS player so media keys and Waybar
+  # always target the active audio source.
+  # ===========================================================================
+  services.playerctld.enable = true;
+
+  # ===========================================================================
   # Systemd User Session Environment Variables
   # Injected into the user session for Wayland gaming and HDR support.
   # ===========================================================================
