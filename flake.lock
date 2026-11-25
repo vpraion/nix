@@ -96,7 +96,28 @@
         "antigravity-nix": "antigravity-nix",
         "g9-edid": "g9-edid",
         "home-manager": "home-manager",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "sidra": "sidra"
+      }
+    },
+    "sidra": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1795152649,
+        "narHash": "sha256-e7DLvWQHIsX6NBXUXPUJjnwFSpmdCjG2PG711lzWjFU=",
+        "owner": "wimpysworld",
+        "repo": "sidra",
+        "rev": "db04797bb108f625b4aed684c35fe30f4c3df049",
+        "type": "github"
+      },
+      "original": {
+        "owner": "wimpysworld",
+        "repo": "sidra",
+        "type": "github"
       }
     },
     "systems": {

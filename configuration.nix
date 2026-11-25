@@ -35,5 +35,6 @@
     ./modules/programs/gaming.nix
     ./modules/programs/firefox.nix
     ./modules/programs/antigravity-cli.nix
+    ./modules/programs/sidra.nix
   ];
 }
