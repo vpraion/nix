@@ -13,7 +13,11 @@
       url = "github:vpraion/odysseyg9-linux-240hz-vrr-hdr-noflicker";
       flake = false;
     };
-
+    
+    antigravity-nix = {
+      url = "github:jacopone/antigravity-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, home-manager, ... }@inputs: {
