@@ -30,6 +30,7 @@
     # System services & daemons
     ./modules/services/docker.nix
     ./modules/services/openrgb.nix
+    ./modules/services/arrmada.nix
 
     # Applications
     ./modules/programs/gaming.nix
