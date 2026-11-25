@@ -24,6 +24,7 @@
       hyprpaper
       wl-clipboard
       kdePackages.dolphin
+      kdePackages.gwenview
       vesktop
       pavucontrol
       haruna
