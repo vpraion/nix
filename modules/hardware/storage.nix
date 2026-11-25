@@ -46,7 +46,12 @@
       "minfreespace=20G"        # Disk threshold before spilling over to another drive
       "moveonenospc=true"       # Dynamically moves in-progress writes to another disk if a drive fills up
       "fsname=mergerfs-media"   # Clean identifier in 'df -h'
-      "x-systemd.requires-mounts-for=/mnt/disks" # Ensures underlying physical drives are ready first
+      "x-systemd.after=/mnt/disks/hdd-1" # Wait for each physical HDD mount before pooling
+      "x-systemd.after=/mnt/disks/hdd-2"
+      "x-systemd.after=/mnt/disks/hdd-3"
+      "x-systemd.wants=/mnt/disks/hdd-1" # Soft dependency so pool still mounts if one HDD is unplugged
+      "x-systemd.wants=/mnt/disks/hdd-2"
+      "x-systemd.wants=/mnt/disks/hdd-3"
       "nofail"                  # Prevents system lockup if one physical disk is disconnected
     ];
   };
@@ -59,7 +64,7 @@
     # Physical mount base folder
     "d /mnt/disks 0755 root root -"
 
-    # Service data mount target
-    "d /srv/media 0775 vini users -"
+    # Service data mount target (setgid 2775 ensures new files inherit the 'media' group)
+    "d /srv/media 2775 vini media -"
   ];
 }

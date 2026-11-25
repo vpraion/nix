@@ -13,6 +13,7 @@
       "wheel"          # sudo permissions
       "networkmanager" # Network management without root
       "docker"         # Docker daemon socket access
+      "media"          # Shared media pool (/srv/media) access
     ];
 
     # Desktop GUI packages installed into the user profile.

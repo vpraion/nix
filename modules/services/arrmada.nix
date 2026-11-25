@@ -33,6 +33,15 @@ let
   };
 in
 {
+  # Dedicated media group and isolated per-service users for Arrmada containers.
+  users.groups.media.gid = 2000;
+
+  users.users.jellyfin = {
+    isSystemUser = true;
+    uid          = 2001;
+    group        = "media";
+  };
+
   # Ensure ~/services exists with proper user ownership.
   systemd.tmpfiles.rules = [
     "d /home/vini/services 0755 vini users -"
