@@ -53,5 +53,6 @@
     nvtopPackages.full
     ncdu
     yazi
+    go
   ];
 }
