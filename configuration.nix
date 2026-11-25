@@ -30,7 +30,6 @@
     # System services & daemons
     ./modules/services/docker.nix
     ./modules/services/openrgb.nix
-    ./modules/services/coolercontrol.nix
 
     # Applications
     ./modules/programs/gaming.nix
