@@ -56,5 +56,6 @@
     ncdu
     yazi
     go
+    ouch
   ];
 }
