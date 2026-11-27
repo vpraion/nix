@@ -32,8 +32,10 @@
     ./modules/services/openrgb.nix
     ./modules/services/arrmada.nix
 
+    # Gaming & Hybrid Desktop / TV Mode
+    ./modules/gaming
+
     # Applications
-    ./modules/programs/gaming.nix
     ./modules/programs/firefox.nix
     ./modules/programs/antigravity-cli.nix
     ./modules/programs/sidra.nix

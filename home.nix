@@ -91,14 +91,9 @@ in
   services.playerctld.enable = true;
 
   # ===========================================================================
-  # Systemd User Session Environment Variables
-  # Injected into the user session for Wayland gaming and HDR support.
+  # Note: PROTON_ENABLE_WAYLAND & PROTON_ENABLE_HDR are intentionally scoped
+  # to the Hyprland session (~/.dotfiles/hypr/.config/hypr/config/env.lua)
+  # rather than global systemd.user.sessionVariables so they never leak into
+  # Gamescope TV mode (where PROTON_ENABLE_WAYLAND breaks Steam Overlay/Input).
   # ===========================================================================
-  systemd.user.sessionVariables = {
-    # Force Proton to use native Wayland swapchains instead of XWayland.
-    PROTON_ENABLE_WAYLAND = "1";
-
-    # Expose HDR swapchains to Proton games.
-    PROTON_ENABLE_HDR = "1";
-  };
 }
