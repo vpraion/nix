@@ -13,11 +13,11 @@ import subprocess
 import sys
 import time
 
-GPU_CARD_NAME = os.environ.get("GPU_AUDIO_CARD", "alsa_card.pci-0000_0d_00.1")
-GPU_SINK_MATCH = os.environ.get("GPU_SINK_MATCH", "pci-0000_0d_00.1")
-SOUNDBAR_SINK_MATCH = os.environ.get("SOUNDBAR_SINK_MATCH", "iec958-stereo")
-DESKTOP_EDID_NAME = os.environ.get("DESKTOP_EDID_NAME", "LC49G95T")
-TV_EDID_NAME = os.environ.get("TV_EDID_NAME", "HISENSE")
+GPU_CARD_NAME = os.environ["GPU_AUDIO_CARD"]
+GPU_SINK_MATCH = os.environ["GPU_SINK_MATCH"]
+SOUNDBAR_SINK_MATCH = os.environ["SOUNDBAR_SINK_MATCH"]
+DESKTOP_EDID_NAME = os.environ["DESKTOP_EDID_NAME"]
+TV_EDID_NAME = os.environ["TV_EDID_NAME"]
 
 
 def pw_dump() -> list[dict]:

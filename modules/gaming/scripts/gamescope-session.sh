@@ -16,7 +16,7 @@ stats="$tmpdir/stats.pipe"
 # SteamOS / Gamescope Session Globals
 # -----------------------------------------------------------------------------
 export SDL_VIDEO_MINIMIZE_ON_FOCUS_LOSS=0
-export SDL_GAMECONTROLLER_IGNORE_DEVICES="${IGNORED_CONTROLLERS:-0x31e3/0x1320}"
+export SDL_GAMECONTROLLER_IGNORE_DEVICES="$IGNORED_CONTROLLERS"
 
 # MangoApp overlay integration with Steam Quick Access Menu
 export STEAM_MANGOAPP_PRESETS_SUPPORTED=1
@@ -25,12 +25,6 @@ export STEAM_DISABLE_MANGOAPP_ATOM_WORKAROUND=1
 export STEAM_MANGOAPP_HORIZONTAL_SUPPORTED=1
 export MANGOHUD_CONFIGFILE="$tmpdir/mangohud.config"
 echo "no_display" > "$MANGOHUD_CONFIGFILE"
-
-# Dynamic VRS (Mesa RADV)
-export STEAM_USE_DYNAMIC_VRS=1
-RADV_FORCE_VRS_CONFIG_FILE="$(mktemp /tmp/radv_vrs.XXXXXXXX)"
-export RADV_FORCE_VRS_CONFIG_FILE
-echo "1x1" > "$RADV_FORCE_VRS_CONFIG_FILE"
 
 # Persistent Gamescope display modes & patched EDID paths
 export GAMESCOPE_MODE_SAVE_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/gamescope/modes.cfg"
@@ -53,19 +47,13 @@ export STEAM_GAMESCOPE_FANCY_SCALING_SUPPORT=1
 export STEAM_GAMESCOPE_DYNAMIC_REFRESH_IN_STEAM_SUPPORTED=0
 export ENABLE_GAMESCOPE_WSI=1
 
-# Frame pacing, XWayland isolation & Steam runtime tuning
-export VKD3D_SWAPCHAIN_LATENCY_FRAMES=3
-export WINEDLLOVERRIDES="dxgi=n"
+# XWayland isolation & Steam runtime tuning
 export STEAM_MULTIPLE_XWAYLANDS=1
 export STEAM_LAUNCH_WRAPPER_SCOPE=1
 export STEAM_ENABLE_VOLUME_HANDLER=1
 export SRT_URLOPEN_PREFER_STEAM=1
 export STEAM_DISABLE_AUDIO_DEVICE_SWITCHING=1
-export STEAM_ENABLE_CEC=0
 export vk_xwayland_wait_ready=false
-export GAMESCOPE_DISABLE_ASYNC_FLIPS=1
-GAMESCOPE_LIMITER_FILE="$(mktemp /tmp/gamescope-limiter.XXXXXXXX)"
-export GAMESCOPE_LIMITER_FILE
 
 ulimit -n 524288 || true
 
@@ -104,17 +92,12 @@ if [[ -x /run/wrappers/bin/gamescope ]]; then
   GAMESCOPE_BIN="/run/wrappers/bin/gamescope"
 fi
 
-WIDTH="${TV_WIDTH:-3840}"
-HEIGHT="${TV_HEIGHT:-2160}"
-REFRESH="${TV_REFRESH:-120}"
-CONNECTOR="${TV_CONNECTOR:-HDMI-A-2}"
-
 exec "$GAMESCOPE_BIN" \
   --backend drm \
   --hdr-enabled \
   --adaptive-sync \
-  -w "$WIDTH" -h "$HEIGHT" \
-  -W "$WIDTH" -H "$HEIGHT" -r "$REFRESH" \
+  -w "$TV_WIDTH" -h "$TV_HEIGHT" \
+  -W "$TV_WIDTH" -H "$TV_HEIGHT" -r "$TV_REFRESH" \
   --generate-drm-mode fixed \
   --xwayland-count 2 \
   --default-touch-mode 4 \
@@ -122,4 +105,4 @@ exec "$GAMESCOPE_BIN" \
   --max-scale 2 \
   --fade-out-duration 200 \
   -e -R "$socket" -T "$stats" \
-  -O "$CONNECTOR"
+  -O "$TV_CONNECTOR"

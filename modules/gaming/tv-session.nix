@@ -94,7 +94,7 @@ in
       TimeoutStartSec = 15;
       TimeoutStopSec = 10;
       ExecStart = "${gamescopeSessionScript}/bin/gamescope-session";
-      ExecStopPost = "${pkgs.bash}/bin/bash -c '${pkgs.coreutils}/bin/rm -rf \"$XDG_RUNTIME_DIR\"/gamescope{.,-}* \"$XDG_RUNTIME_DIR\"/gamescope-environment /tmp/gamescope-limiter* /tmp/radv_vrs.*'";
+      ExecStopPost = "${pkgs.bash}/bin/bash -c '${pkgs.coreutils}/bin/rm -rf \"$XDG_RUNTIME_DIR\"/gamescope{.,-}* \"$XDG_RUNTIME_DIR\"/gamescope-environment'";
       Environment = [
         "SRT_LOG_TO_JOURNAL=1"
         "XDG_SESSION_TYPE=x11"

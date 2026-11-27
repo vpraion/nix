@@ -4,12 +4,8 @@
 # autologin drop-in (Relogin=false), and restarts display-manager.service.
 
 TARGET_SESSION="${1:-}"
-TARGET_USER="${TARGET_USER:-vini}"
-SDDM_SWITCH_CONF="${SDDM_SWITCH_CONF:-/etc/sddm.conf.d/zz-session-switch.conf}"
-TV_SESSION="${TV_SESSION_NAME:-gamescope-session}"
-DESKTOP_SESSION="${DESKTOP_SESSION_NAME:-hyprland-uwsm}"
 
-if [[ "$TARGET_SESSION" != "$TV_SESSION" && "$TARGET_SESSION" != "$DESKTOP_SESSION" ]]; then
+if [[ "$TARGET_SESSION" != "$TV_SESSION_NAME" && "$TARGET_SESSION" != "$DESKTOP_SESSION_NAME" ]]; then
   echo "Error: Unsupported target session '$TARGET_SESSION'" >&2
   exit 1
 fi
@@ -36,17 +32,17 @@ is_desktop_active() {
 }
 
 # Guard against redundant switches if invoked directly via systemctl
-if [[ "$TARGET_SESSION" == "$TV_SESSION" ]] && is_tv_active; then
+if [[ "$TARGET_SESSION" == "$TV_SESSION_NAME" ]] && is_tv_active; then
   echo "Already in TV mode (Gamescope)."
   exit 0
 fi
-if [[ "$TARGET_SESSION" == "$DESKTOP_SESSION" ]] && is_desktop_active; then
+if [[ "$TARGET_SESSION" == "$DESKTOP_SESSION_NAME" ]] && is_desktop_active; then
   echo "Already in Desktop mode (Hyprland)."
   exit 0
 fi
 
 # 1. Gracefully tear down the currently active graphical session
-if [[ "$TARGET_SESSION" == "$TV_SESSION" ]]; then
+if [[ "$TARGET_SESSION" == "$TV_SESSION_NAME" ]]; then
   # Leaving Desktop (Hyprland / UWSM) -> cleanly close Hyprland and its child apps
   if run_as_user systemctl --user is-active --quiet graphical-session.target 2>/dev/null; then
     run_as_user uwsm stop 2>/dev/null || true

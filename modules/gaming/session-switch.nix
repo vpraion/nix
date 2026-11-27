@@ -30,6 +30,10 @@ let
       systemd
       procps
     ];
+    runtimeEnv = {
+      TV_SESSION_NAME = cfg.sessions.tv;
+      DESKTOP_SESSION_NAME = cfg.sessions.desktop;
+    };
     text = readBash ./scripts/session-switch.sh;
   };
 
