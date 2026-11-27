@@ -3,12 +3,16 @@
 # Manages dotfile symlinks, user environment variables, and desktop aesthetics.
 # =============================================================================
 
-{ config, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 let
   dotfilesDir = "${config.home.homeDirectory}/.dotfiles";
 in
 {
+  imports = [
+    ./modules/home/theme.nix
+  ];
+
   # Home Manager release compatibility version.
   home.stateVersion = "26.05";
 
@@ -65,23 +69,15 @@ in
   };
 
   # ===========================================================================
-  # User Icon Packages
+  # KDE Default Applications
+  # Configures Dolphin's "Open Terminal" (Shift+F4) to launch Kitty instead of
+  # falling back to Konsole. Merged into ~/.config/kdeglobals alongside theme.nix.
   # ===========================================================================
-  home.packages = with pkgs; [
-    kdePackages.breeze-icons
-  ];
-
-  # ===========================================================================
-  # Cursor Theme Configuration
-  # Configures Breeze Dark cursors across GTK and X11/XWayland applications.
-  # ===========================================================================
-  home.pointerCursor = {
-    gtk.enable = true;
-    x11.enable = true;
-    package    = pkgs.kdePackages.breeze;
-    name       = "breeze_cursors";
-    size       = 32;
-  };
+  xdg.configFile."kdeglobals".text = lib.mkAfter ''
+    [General]
+    TerminalApplication=kitty
+    TerminalService=kitty.desktop
+  '';
 
   # ===========================================================================
   # MPRIS Media Player Daemon
