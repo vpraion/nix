@@ -1,6 +1,6 @@
 # =============================================================================
 # Gaming & Hybrid Desktop / TV Mode Subsystem
-# Aggregates Steam/GameMode, Gamescope TV session, and seamless SDDM switching.
+# Aggregates Steam/GameMode, Gamescope TV session, SDDM switching, and audio.
 # =============================================================================
 
 { ... }:
@@ -8,7 +8,8 @@
 {
   imports = [
     ./steam.nix
-    ./tv-mode.nix
+    ./tv-session.nix
     ./session-switch.nix
+    ./audio.nix
   ];
 }

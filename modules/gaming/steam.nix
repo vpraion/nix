@@ -12,7 +12,7 @@
     # Open firewall ports for local Steam Remote Play streaming.
     remotePlay.openFirewall = true;
 
-    # Disabled in favor of our full SteamOS-like systemd session in ./tv-mode.nix
+    # Disabled in favor of our full SteamOS-like systemd session in ./tv-session.nix
     # to avoid duplicate SDDM Wayland session entries.
     gamescopeSession.enable = false;
 
