@@ -2,82 +2,60 @@
 # Seamless Desktop (Hyprland) <-> TV (Gamescope) SDDM Session Switching
 # - NO autologin on cold boot (purged via systemd-tmpfiles + Relogin=false)
 # - Passwordless one-shot autologin ONLY during explicit session switches
-# - Intercepts Steam's native "Switch to Desktop" via steamos-session-select
+# - Single user CLI: session-switch {tv|desktop|status}
 # =============================================================================
 
 { lib, pkgs, ... }:
 
 let
-  targetUser = "vini";
-  sddmSwitchConf = "/etc/sddm.conf.d/zz-session-switch.conf";
+  cfg = import ./config.nix;
   readBash = file: lib.removePrefix "#!/usr/bin/env bash\n" (builtins.readFile file);
 
-  sessionSwitchHelper = pkgs.writeShellApplication {
-    name = "session-switch-helper";
+  # Internal root worker (only invoked by systemd session-switch@.service, not in user PATH)
+  sessionSwitchWorker = pkgs.writeShellApplication {
+    name = "session-switch-worker";
     runtimeInputs = with pkgs; [
       coreutils
       systemd
       util-linux
       procps
     ];
-    text = readBash ./scripts/session-switch-helper.sh;
+    text = readBash ./scripts/session-switch-worker.sh;
   };
 
-  getTvMode = pkgs.writeShellApplication {
-    name = "get-tv-mode";
-    runtimeInputs = with pkgs; [ systemd ];
-    text = readBash ./scripts/get-tv-mode.sh;
+  # User-facing CLI: session-switch {tv|desktop|status}
+  sessionSwitch = pkgs.writeShellApplication {
+    name = "session-switch";
+    runtimeInputs = with pkgs; [
+      systemd
+      procps
+    ];
+    text = readBash ./scripts/session-switch.sh;
   };
 
-  getDesktopMode = pkgs.writeShellApplication {
-    name = "get-desktop-mode";
-    runtimeInputs = with pkgs; [ systemd procps ];
-    text = readBash ./scripts/get-desktop-mode.sh;
-  };
-
-  setTvSession = pkgs.writeShellApplication {
-    name = "set-tv-session";
-    runtimeInputs = with pkgs; [ systemd ];
-    text = readBash ./scripts/set-tv-session.sh;
-  };
-
-  setDesktopSession = pkgs.writeShellApplication {
-    name = "set-desktop-session";
-    runtimeInputs = with pkgs; [ systemd procps ];
-    text = readBash ./scripts/set-desktop-session.sh;
-  };
-
-  steamosSessionSelect = pkgs.writeShellApplication {
-    name = "steamos-session-select";
-    runtimeInputs = [ setDesktopSession setTvSession ];
-    text = readBash ./scripts/steamos-session-select.sh;
-  };
-
-  sessionAliasesAndLaunchers = pkgs.runCommand "session-switch-aliases" {} ''
+  # Steam "Switch to Desktop" adapter & Rofi .desktop entries
+  sessionIntegrations = pkgs.runCommand "session-switch-integrations" {} ''
     mkdir -p "$out/bin" "$out/share/applications"
 
-    ln -s ${setTvSession}/bin/set-tv-session "$out/bin/mode-tv"
-    ln -s ${setTvSession}/bin/set-tv-session "$out/bin/switch-to-tv"
-    ln -s ${setDesktopSession}/bin/set-desktop-session "$out/bin/mode-desktop"
-    ln -s ${setDesktopSession}/bin/set-desktop-session "$out/bin/mode-bureau"
-    ln -s ${setDesktopSession}/bin/set-desktop-session "$out/bin/switch-to-desktop"
+    # Required in PATH for Steam Gaming Mode's native "Switch to Desktop" action
+    ln -s ${sessionSwitch}/bin/session-switch "$out/bin/steamos-session-select"
 
-    cat <<EOF > "$out/share/applications/mode-tv.desktop"
+    cat <<EOF > "$out/share/applications/session-switch-tv.desktop"
     [Desktop Entry]
-    Name=Mode TV (Steam)
-    Comment=Basculer vers la session Steam Gaming Mode sur la TV (HDMI-A-2)
-    Exec=${setTvSession}/bin/set-tv-session
+    Name=TV Mode (Steam)
+    Comment=Switch to Steam Gaming Mode on TV (${cfg.tv.connector})
+    Exec=${sessionSwitch}/bin/session-switch tv
     Icon=video-television
     Terminal=false
     Type=Application
     Categories=Game;
     EOF
 
-    cat <<EOF > "$out/share/applications/mode-desktop.desktop"
+    cat <<EOF > "$out/share/applications/session-switch-desktop.desktop"
     [Desktop Entry]
-    Name=Mode Bureau (Hyprland)
-    Comment=Basculer vers le bureau Hyprland
-    Exec=${setDesktopSession}/bin/set-desktop-session
+    Name=Desktop Mode (Hyprland)
+    Comment=Switch to Hyprland desktop
+    Exec=${sessionSwitch}/bin/session-switch desktop
     Icon=video-display
     Terminal=false
     Type=Application
@@ -87,17 +65,13 @@ let
 in
 {
   environment.systemPackages = [
-    getTvMode
-    getDesktopMode
-    setTvSession
-    setDesktopSession
-    steamosSessionSelect
-    sessionAliasesAndLaunchers
+    sessionSwitch
+    sessionIntegrations
   ];
 
   # Boot-time safety: always remove one-shot autologin drop-in on cold boot
   systemd.tmpfiles.rules = [
-    "R! ${sddmSwitchConf} - - - - -"
+    "R! ${cfg.sddmSwitchConf} - - - - -"
   ];
 
   # Root template service that survives graphical session teardown cleanly
@@ -106,10 +80,12 @@ in
     serviceConfig = {
       Type = "oneshot";
       Environment = [
-        "TARGET_USER=${targetUser}"
-        "SDDM_SWITCH_CONF=${sddmSwitchConf}"
+        "TARGET_USER=${cfg.user}"
+        "SDDM_SWITCH_CONF=${cfg.sddmSwitchConf}"
+        "TV_SESSION_NAME=${cfg.sessions.tv}"
+        "DESKTOP_SESSION_NAME=${cfg.sessions.desktop}"
       ];
-      ExecStart = "${sessionSwitchHelper}/bin/session-switch-helper %i";
+      ExecStart = "${sessionSwitchWorker}/bin/session-switch-worker %i";
     };
   };
 
@@ -117,7 +93,7 @@ in
     description = "Remove Temporary SDDM One-Shot Autologin Drop-in";
     serviceConfig = {
       Type = "oneshot";
-      ExecStart = "${pkgs.coreutils}/bin/rm -f ${sddmSwitchConf}";
+      ExecStart = "${pkgs.coreutils}/bin/rm -f ${cfg.sddmSwitchConf}";
     };
   };
 
@@ -128,8 +104,8 @@ in
       if (action.id == "org.freedesktop.systemd1.manage-units" &&
           subject.isInGroup("wheel")) {
         var unit = action.lookup("unit");
-        if (unit == "session-switch@gamescope-session.service" ||
-            unit == "session-switch@hyprland-uwsm.service" ||
+        if (unit == "session-switch@${cfg.sessions.tv}.service" ||
+            unit == "session-switch@${cfg.sessions.desktop}.service" ||
             unit == "session-switch-cleanup.service") {
           return polkit.Result.YES;
         }
@@ -143,7 +119,7 @@ in
     after = [ "graphical-session.target" ];
     wantedBy = [ "graphical-session.target" ];
     unitConfig = {
-      ConditionPathExists = sddmSwitchConf;
+      ConditionPathExists = cfg.sddmSwitchConf;
     };
 
     serviceConfig = {

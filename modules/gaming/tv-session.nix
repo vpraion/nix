@@ -1,14 +1,15 @@
 # =============================================================================
 # TV Mode: SteamOS-Style Gamescope Systemd User Session
-# - Registers gamescope-session.desktop with SDDM (HDMI-A-2, 4K@120Hz HDR VRR)
+# - Registers gamescope-session.desktop with SDDM
 # - Type=notify Gamescope compositor exporting %t/gamescope-environment
 # - Steam (-steamos3 -gamepadui) kept alive via Upholds= (auto-restarts on crash)
-# - MangoApp performance overlay bound to Gamescope stats pipe
+# - Strict After=/Requires= ordering so Steam & MangoApp stop before Gamescope
 # =============================================================================
 
-{ lib, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 let
+  cfg = import ./config.nix;
   readBash = file: lib.removePrefix "#!/usr/bin/env bash\n" (builtins.readFile file);
 
   startGamescopeSession = pkgs.writeShellApplication {
@@ -35,20 +36,15 @@ let
     text = readBash ./scripts/gamescope-session.sh;
   };
 
-  steamLauncherScript = pkgs.writeShellApplication {
-    name = "steam-launcher";
-    text = readBash ./scripts/steam-launcher.sh;
-  };
-
   gamescopeSessionPkg = pkgs.runCommand "gamescope-tv-session" {
-    passthru.providedSessions = [ "gamescope-session" ];
+    passthru.providedSessions = [ cfg.sessions.tv ];
   } ''
     mkdir -p "$out/share/wayland-sessions"
-    cat <<EOF > "$out/share/wayland-sessions/gamescope-session.desktop"
+    cat <<EOF > "$out/share/wayland-sessions/${cfg.sessions.tv}.desktop"
     [Desktop Entry]
     Encoding=UTF-8
     Name=Gamescope TV (Steam)
-    Comment=Steam Big Picture session on TV (HDMI-A-2)
+    Comment=Steam Big Picture session on TV (${cfg.tv.connector})
     Exec=${startGamescopeSession}/bin/start-gamescope-session
     Icon=steam
     Type=Application
@@ -58,11 +54,7 @@ let
 in
 {
   services.displayManager.sessionPackages = [ gamescopeSessionPkg ];
-  environment.systemPackages = [ startGamescopeSession ];
 
-  # ---------------------------------------------------------------------------
-  # Systemd User Target & Services (TV Mode)
-  # ---------------------------------------------------------------------------
   systemd.user.targets.gamescope-session = {
     description = "Gamescope TV Session";
     requires = [
@@ -81,14 +73,12 @@ in
     ];
     unitConfig = {
       PropagatesStopTo = "graphical-session.target";
-      # Auto-restarts Steam on crash while TV mode stays active,
-      # without restarting it when gamescope-session.target is intentionally stopped.
       Upholds = "steam-launcher.service";
     };
   };
 
   systemd.user.services.gamescope-session = {
-    description = "Gamescope TV Compositor (HDMI-A-2 4K@120Hz HDR VRR)";
+    description = "Gamescope TV Compositor (${cfg.tv.connector} ${toString cfg.tv.width}x${toString cfg.tv.height}@${toString cfg.tv.refresh}Hz HDR VRR)";
     before = [
       "graphical-session.target"
       "xdg-desktop-portal.service"
@@ -108,30 +98,37 @@ in
       Environment = [
         "SRT_LOG_TO_JOURNAL=1"
         "XDG_SESSION_TYPE=x11"
-        "TV_OUTPUT_CONNECTOR=HDMI-A-2"
+        "TV_CONNECTOR=${cfg.tv.connector}"
+        "TV_WIDTH=${toString cfg.tv.width}"
+        "TV_HEIGHT=${toString cfg.tv.height}"
+        "TV_REFRESH=${toString cfg.tv.refresh}"
+        "IGNORED_CONTROLLERS=${cfg.input.ignoredControllers}"
       ];
       UnsetEnvironment = [
         "DISPLAY"
         "WAYLAND_DISPLAY"
         "XAUTHORITY"
-        "PROTON_ENABLE_WAYLAND"
-        "HYPRLAND_INSTANCE_SIGNATURE"
       ];
       Slice = "session.slice";
     };
   };
 
   systemd.user.services.steam-launcher = {
-    description = "Steam Gaming Mode Launcher";
+    description = "Steam Gaming Mode";
     after = [
       "graphical-session.target"
       "xdg-desktop-portal.service"
     ];
     partOf = [ "graphical-session.target" ];
+    path = [
+      "/run/wrappers"
+      "/run/current-system/sw"
+      "/etc/profiles/per-user/${cfg.user}"
+    ];
 
     serviceConfig = {
       Type = "exec";
-      ExecStart = "${steamLauncherScript}/bin/steam-launcher";
+      ExecStart = "${config.programs.steam.package}/bin/steam -steamos3 -gamepadui";
       ExecStop = "${pkgs.bash}/bin/bash -c 'kill -TERM $(${pkgs.procps}/bin/pgrep -P $MAINPID || echo $MAINPID) 2>/dev/null || true'";
       KillSignal = "SIGCONT";
       KillMode = "mixed";

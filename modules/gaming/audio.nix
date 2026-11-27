@@ -1,45 +1,31 @@
 # =============================================================================
 # Automatic PipeWire / WirePlumber Audio Routing (Desktop Soundbar <-> TV HDMI)
-# 100% native PipeWire (pw-dump + wpctl), zero PulseAudio CLI dependency.
+# Unified Python tool (audio-switch {tv|desktop}), 100% native PipeWire.
 # =============================================================================
 
 { lib, pkgs, ... }:
 
 let
-  mkPythonApp = name: src: runtimeInputs:
-    pkgs.runCommand name {
-      nativeBuildInputs = [ pkgs.makeWrapper ];
-      buildInputs = [ pkgs.python3Minimal ];
-    } ''
-      install -Dm755 ${src} "$out/bin/${name}"
-      patchShebangs "$out/bin/${name}"
-      ${pkgs.python3Minimal}/bin/python3 -m py_compile "$out/bin/${name}"
-      rm -rf "$out/bin/__pycache__"
-      wrapProgram "$out/bin/${name}" \
-        --prefix PATH : ${lib.makeBinPath runtimeInputs}
-    '';
+  cfg = import ./config.nix;
 
-  pipewireTools = with pkgs; [
-    pipewire
-    wireplumber
-  ];
-
-  setDesktopAudio = mkPythonApp "set-desktop-audio" ./scripts/set-desktop-audio.py pipewireTools;
-  setTvAudio = mkPythonApp "set-tv-audio" ./scripts/set-tv-audio.py pipewireTools;
-
-  audioAliases = pkgs.runCommand "gaming-audio-aliases" {} ''
-    mkdir -p "$out/bin"
-    ln -s ${setDesktopAudio}/bin/set-desktop-audio "$out/bin/set-audio-soundbar"
-    ln -s ${setTvAudio}/bin/set-tv-audio "$out/bin/set-audio-tv"
+  audioSwitch = pkgs.runCommand "audio-switch" {
+    nativeBuildInputs = [ pkgs.makeWrapper ];
+    buildInputs = [ pkgs.python3Minimal ];
+  } ''
+    install -Dm755 ${./scripts/audio-switch.py} "$out/bin/audio-switch"
+    patchShebangs "$out/bin/audio-switch"
+    ${pkgs.python3Minimal}/bin/python3 -m py_compile "$out/bin/audio-switch"
+    rm -rf "$out/bin/__pycache__"
+    wrapProgram "$out/bin/audio-switch" \
+      --prefix PATH : ${lib.makeBinPath (with pkgs; [ pipewire wireplumber ])} \
+      --set-default GPU_AUDIO_CARD "${cfg.audio.gpuCard}" \
+      --set-default GPU_SINK_MATCH "${cfg.audio.gpuSinkMatch}" \
+      --set-default SOUNDBAR_SINK_MATCH "${cfg.audio.soundbarSink}" \
+      --set-default DESKTOP_EDID_NAME "${cfg.desktop.edidName}" \
+      --set-default TV_EDID_NAME "${cfg.tv.edidName}"
   '';
 in
 {
-  environment.systemPackages = [
-    setDesktopAudio
-    setTvAudio
-    audioAliases
-  ];
-
   # TV Audio: runs once Gamescope & Steam start initializing HDMI-A-2
   systemd.user.services.gamescope-audio-tv = {
     description = "Switch PipeWire Audio to TV (HDMI) in Gamescope Mode";
@@ -54,7 +40,7 @@ in
 
     serviceConfig = {
       Type = "oneshot";
-      ExecStart = "${setTvAudio}/bin/set-tv-audio";
+      ExecStart = "${audioSwitch}/bin/audio-switch tv";
     };
   };
 
@@ -68,13 +54,12 @@ in
     ];
     wantedBy = [ "graphical-session.target" ];
     unitConfig = {
-      # Never fire inside Gamescope TV session
       ConditionPathExists = "!%t/gamescope-environment";
     };
 
     serviceConfig = {
       Type = "oneshot";
-      ExecStart = "${setDesktopAudio}/bin/set-desktop-audio";
+      ExecStart = "${audioSwitch}/bin/audio-switch desktop";
     };
   };
 }

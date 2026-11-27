@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
 # Gamescope DRM compositor launcher (Type=notify systemd user service).
-# Exports SteamOS TV session variables, waits for Gamescope's startup socket,
-# writes %t/gamescope-environment, and notifies systemd when ready.
-
-# Strictly isolate TV mode from desktop Wayland / Hyprland variables
-unset PROTON_ENABLE_WAYLAND WAYLAND_DISPLAY DISPLAY XAUTHORITY HYPRLAND_INSTANCE_SIGNATURE
+# Hardware parameters (TV_CONNECTOR, TV_WIDTH, TV_HEIGHT, TV_REFRESH, IGNORED_CONTROLLERS)
+# are injected by gamescope-session.service from nix/modules/gaming/config.nix.
 
 if [[ -z "${XDG_RUNTIME_DIR:-}" ]]; then
   echo >&2 "!! XDG_RUNTIME_DIR is not set; cannot create Gamescope sockets"
@@ -19,9 +16,7 @@ stats="$tmpdir/stats.pipe"
 # SteamOS / Gamescope Session Globals
 # -----------------------------------------------------------------------------
 export SDL_VIDEO_MINIMIZE_ON_FOCUS_LOSS=0
-
-# Ignore Wooting keyboard analog interface as a Steam/SDL gamepad
-export SDL_GAMECONTROLLER_IGNORE_DEVICES="0x31e3/0x1320"
+export SDL_GAMECONTROLLER_IGNORE_DEVICES="${IGNORED_CONTROLLERS:-0x31e3/0x1320}"
 
 # MangoApp overlay integration with Steam Quick Access Menu
 export STEAM_MANGOAPP_PRESETS_SUPPORTED=1
@@ -94,8 +89,8 @@ read_gamescope_env() {
     export DISPLAY="$response_x_display"
     export GAMESCOPE_WAYLAND_DISPLAY="$response_wl_display"
 
-    # Write clean single-line KEY=VALUE environment for Steam & MangoApp
-    env | grep -E '^[A-Za-z_][A-Za-z0-9_]*=' > "$XDG_RUNTIME_DIR/gamescope-environment"
+    # Dump session variables for Steam & MangoApp without clobbering their PATH
+    env | grep -E '^[A-Za-z_][A-Za-z0-9_]*=' | grep -Ev '^(PATH|_)=' > "$XDG_RUNTIME_DIR/gamescope-environment"
     systemd-notify --ready
   else
     echo >&2 "!! Timed out waiting for Gamescope startup socket"
@@ -104,18 +99,22 @@ read_gamescope_env() {
 
 read_gamescope_env &
 
-# Prefer the CAP_SYS_NICE NixOS wrapper when available
 GAMESCOPE_BIN="$(command -v gamescope)"
 if [[ -x /run/wrappers/bin/gamescope ]]; then
   GAMESCOPE_BIN="/run/wrappers/bin/gamescope"
 fi
 
+WIDTH="${TV_WIDTH:-3840}"
+HEIGHT="${TV_HEIGHT:-2160}"
+REFRESH="${TV_REFRESH:-120}"
+CONNECTOR="${TV_CONNECTOR:-HDMI-A-2}"
+
 exec "$GAMESCOPE_BIN" \
   --backend drm \
   --hdr-enabled \
   --adaptive-sync \
-  -w 3840 -h 2160 \
-  -W 3840 -H 2160 -r 120 \
+  -w "$WIDTH" -h "$HEIGHT" \
+  -W "$WIDTH" -H "$HEIGHT" -r "$REFRESH" \
   --generate-drm-mode fixed \
   --xwayland-count 2 \
   --default-touch-mode 4 \
@@ -123,4 +122,4 @@ exec "$GAMESCOPE_BIN" \
   --max-scale 2 \
   --fade-out-duration 200 \
   -e -R "$socket" -T "$stats" \
-  -O "${TV_OUTPUT_CONNECTOR:-HDMI-A-2}"
+  -O "$CONNECTOR"

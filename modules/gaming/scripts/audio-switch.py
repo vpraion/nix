@@ -1,19 +1,26 @@
 #!/usr/bin/env python3
-"""Switch PipeWire / WirePlumber audio output to the TV HDMI sink in Gamescope mode."""
+"""Unified PipeWire / WirePlumber audio switcher for Desktop (soundbar) and TV (HDMI) modes.
+
+Usage:
+  audio-switch desktop
+  audio-switch tv
+"""
 
 import glob
 import json
+import os
 import subprocess
 import sys
 import time
 
-GPU_CARD_NAME = "alsa_card.pci-0000_0d_00.1"
-GPU_SINK_HINT = "pci-0000_0d_00.1"
-DESKTOP_MONITOR_NAME = "LC49G95T"
-TV_MONITOR_HINT = "HISENSE"
+GPU_CARD_NAME = os.environ.get("GPU_AUDIO_CARD", "alsa_card.pci-0000_0d_00.1")
+GPU_SINK_MATCH = os.environ.get("GPU_SINK_MATCH", "pci-0000_0d_00.1")
+SOUNDBAR_SINK_MATCH = os.environ.get("SOUNDBAR_SINK_MATCH", "iec958-stereo")
+DESKTOP_EDID_NAME = os.environ.get("DESKTOP_EDID_NAME", "LC49G95T")
+TV_EDID_NAME = os.environ.get("TV_EDID_NAME", "HISENSE")
 
 
-def pw_dump():
+def pw_dump() -> list[dict]:
     proc = subprocess.run(["pw-dump"], capture_output=True, text=True, check=False)
     if proc.returncode != 0:
         return []
@@ -23,6 +30,43 @@ def pw_dump():
         return []
 
 
+def set_default_sink(sink_id: int, sink_name: str, label: str) -> None:
+    subprocess.run(["wpctl", "set-default", str(sink_id)], check=True)
+    print(f"Audio set to {label}: {sink_name} (id {sink_id})")
+
+
+# -----------------------------------------------------------------------------
+# Desktop Mode (Soundbar)
+# -----------------------------------------------------------------------------
+def find_soundbar_sink():
+    for obj in pw_dump():
+        props = (obj.get("info") or {}).get("props") or {}
+        if props.get("media.class") == "Audio/Sink":
+            name = props.get("node.name") or ""
+            if SOUNDBAR_SINK_MATCH in name:
+                return obj["id"], name
+    return None
+
+
+def switch_to_desktop() -> int:
+    sink = None
+    for _ in range(10):
+        sink = find_soundbar_sink()
+        if sink:
+            break
+        time.sleep(0.5)
+
+    if not sink:
+        print(f"Error: Soundbar (*{SOUNDBAR_SINK_MATCH}*) not found in PipeWire.", file=sys.stderr)
+        return 1
+
+    set_default_sink(sink[0], sink[1], "soundbar")
+    return 0
+
+
+# -----------------------------------------------------------------------------
+# TV Mode (HDMI)
+# -----------------------------------------------------------------------------
 def wait_for_tv_eld(timeout_s: float = 25.0):
     """Wait until ALSA reports a valid HDMI ELD for the TV (ignoring the desktop monitor)."""
     deadline = time.monotonic() + timeout_s
@@ -40,7 +84,7 @@ def wait_for_tv_eld(timeout_s: float = 25.0):
 
             if fields.get("monitor_present") == "1" and fields.get("eld_valid") == "1":
                 mon_name = fields.get("monitor_name", "")
-                if mon_name and DESKTOP_MONITOR_NAME.lower() not in mon_name.lower():
+                if mon_name and DESKTOP_EDID_NAME.lower() not in mon_name.lower():
                     return path, mon_name
         time.sleep(0.5)
     return None
@@ -57,9 +101,8 @@ def parse_route_info(info) -> dict[str, str]:
 
 def switch_gpu_card_profile() -> None:
     """Ensure the AMD GPU audio device uses the active TV HDMI stereo profile."""
-    data = pw_dump()
     card = None
-    for obj in data:
+    for obj in pw_dump():
         props = (obj.get("info") or {}).get("props") or {}
         if props.get("device.name") == GPU_CARD_NAME:
             card = obj
@@ -81,9 +124,9 @@ def switch_gpu_card_profile() -> None:
         rinfo = parse_route_info(route.get("info"))
         prod = rinfo.get("device.product.name", "").lower()
 
-        if TV_MONITOR_HINT.lower() in prod:
+        if TV_EDID_NAME.lower() in prod:
             rank = 0
-        elif DESKTOP_MONITOR_NAME.lower() not in prod:
+        elif DESKTOP_EDID_NAME.lower() not in prod:
             rank = 1
         else:
             rank = 2
@@ -113,12 +156,33 @@ def find_tv_sink():
         if props.get("media.class") != "Audio/Sink":
             continue
         name = props.get("node.name") or ""
-        if GPU_SINK_HINT in name and "hdmi-stereo" in name:
+        if GPU_SINK_MATCH in name and "hdmi-stereo" in name:
             primary = (obj["id"], name)
             break
         if "hdmi-stereo" in name and fallback is None:
             fallback = (obj["id"], name)
     return primary or fallback
+
+
+def is_steam_client_connected() -> bool:
+    for obj in pw_dump():
+        if obj.get("type") != "PipeWire:Interface:Client":
+            continue
+        props = (obj.get("info") or {}).get("props") or {}
+        app_name = (props.get("application.name") or "").lower()
+        proc_bin = (props.get("application.process.binary") or "").lower()
+        if "steam" in app_name or "steam" in proc_bin:
+            return True
+    return False
+
+
+def wait_for_steam_client(timeout_s: float = 12.0) -> bool:
+    deadline = time.monotonic() + timeout_s
+    while time.monotonic() < deadline:
+        if is_steam_client_connected():
+            return True
+        time.sleep(0.5)
+    return False
 
 
 def apply_tv_sink() -> bool:
@@ -133,13 +197,11 @@ def apply_tv_sink() -> bool:
         print("Error: TV audio output (*hdmi-stereo) not found in PipeWire.", file=sys.stderr)
         return False
 
-    sink_id, sink_name = sink
-    subprocess.run(["wpctl", "set-default", str(sink_id)], check=True)
-    print(f"Audio set to TV: {sink_name} (id {sink_id})")
+    set_default_sink(sink[0], sink[1], "TV")
     return True
 
 
-def main() -> int:
+def switch_to_tv() -> int:
     eld = wait_for_tv_eld(timeout_s=25.0)
     if eld:
         print(f"Detected TV HDMI ELD: {eld[0]} ({eld[1]})")
@@ -154,10 +216,21 @@ def main() -> int:
     if not apply_tv_sink():
         return 1
 
-    # Re-assert default sink once Steam UI finishes booting and opens its audio streams
-    time.sleep(4.0)
-    apply_tv_sink()
+    # Wait until Steam connects to PipeWire, then re-assert the TV default sink
+    if wait_for_steam_client(timeout_s=12.0):
+        apply_tv_sink()
     return 0
+
+
+def main() -> int:
+    target = sys.argv[1] if len(sys.argv) > 1 else ""
+    if target == "desktop":
+        return switch_to_desktop()
+    if target == "tv":
+        return switch_to_tv()
+
+    print("Usage: audio-switch {desktop|tv}", file=sys.stderr)
+    return 1
 
 
 if __name__ == "__main__":

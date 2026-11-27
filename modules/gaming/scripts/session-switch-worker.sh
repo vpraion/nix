@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
-# Privileged root helper executed inside session-switch@.service.
-# Gracefully closes the active graphical session, writes a one-shot SDDM
+# Privileged root worker executed inside session-switch@.service.
+# Gracefully stops the outgoing graphical session, writes a one-shot SDDM
 # autologin drop-in (Relogin=false), and restarts display-manager.service.
 
 TARGET_SESSION="${1:-}"
 TARGET_USER="${TARGET_USER:-vini}"
 SDDM_SWITCH_CONF="${SDDM_SWITCH_CONF:-/etc/sddm.conf.d/zz-session-switch.conf}"
+TV_SESSION="${TV_SESSION_NAME:-gamescope-session}"
+DESKTOP_SESSION="${DESKTOP_SESSION_NAME:-hyprland-uwsm}"
 
-case "$TARGET_SESSION" in
-  gamescope-session|hyprland-uwsm) ;;
-  *)
-    echo "Error: Unsupported target session '$TARGET_SESSION'" >&2
-    exit 1
-    ;;
-esac
+if [[ "$TARGET_SESSION" != "$TV_SESSION" && "$TARGET_SESSION" != "$DESKTOP_SESSION" ]]; then
+  echo "Error: Unsupported target session '$TARGET_SESSION'" >&2
+  exit 1
+fi
 
 USER_UID="$(id -u "$TARGET_USER")"
 RUNTIME_DIR="/run/user/$USER_UID"
@@ -27,8 +26,27 @@ run_as_user() {
   runuser -u "$TARGET_USER" -- env "${USER_ENV[@]}" "$@"
 }
 
+is_tv_active() {
+  run_as_user systemctl --user is-active --quiet gamescope-session.target 2>/dev/null || \
+  run_as_user systemctl --user is-active --quiet gamescope-session.service 2>/dev/null
+}
+
+is_desktop_active() {
+  ! is_tv_active && pgrep -u "$TARGET_USER" -x Hyprland >/dev/null 2>&1
+}
+
+# Guard against redundant switches if invoked directly via systemctl
+if [[ "$TARGET_SESSION" == "$TV_SESSION" ]] && is_tv_active; then
+  echo "Already in TV mode (Gamescope)."
+  exit 0
+fi
+if [[ "$TARGET_SESSION" == "$DESKTOP_SESSION" ]] && is_desktop_active; then
+  echo "Already in Desktop mode (Hyprland)."
+  exit 0
+fi
+
 # 1. Gracefully tear down the currently active graphical session
-if [[ "$TARGET_SESSION" == "gamescope-session" ]]; then
+if [[ "$TARGET_SESSION" == "$TV_SESSION" ]]; then
   # Leaving Desktop (Hyprland / UWSM) -> cleanly close Hyprland and its child apps
   if run_as_user systemctl --user is-active --quiet graphical-session.target 2>/dev/null; then
     run_as_user uwsm stop 2>/dev/null || true
@@ -41,12 +59,13 @@ if [[ "$TARGET_SESSION" == "gamescope-session" ]]; then
   fi
 else
   # Leaving TV (Gamescope) -> gracefully shut down Steam, then stop gamescope-session.target
-  if run_as_user systemctl --user is-active --quiet gamescope-session.target 2>/dev/null; then
+  # and wait until gamescope-session.service fully releases DRM before restarting SDDM.
+  if is_tv_active; then
     run_as_user steam -shutdown 2>/dev/null || true
     sleep 1
     run_as_user systemctl --user stop gamescope-session.target 2>/dev/null || true
     for _ in $(seq 1 40); do
-      if ! run_as_user systemctl --user is-active --quiet gamescope-session.target 2>/dev/null; then
+      if ! run_as_user systemctl --user is-active --quiet gamescope-session.service 2>/dev/null; then
         break
       fi
       sleep 0.2
