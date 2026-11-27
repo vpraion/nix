@@ -5,8 +5,9 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  # Always track the latest stable Linux kernel branch for modern hardware and AMD GPU improvements.
-  boot.kernelPackages = pkgs.linuxPackages_latest;
+  # Track the testing kernel (Linux 7.4-rc) for native AMDGPU HDMI 2.1 FRL, HDMI VRR/FreeSync, and ALLM.
+  # Switch back to pkgs.linuxPackages_latest once Linux 7.4 stable lands in nixos-unstable.
+  boot.kernelPackages = pkgs.linuxPackages_testing;
 
   # Disable automatic zstd firmware compression to allow raw binary firmware loading.
   hardware.firmwareCompression = "none";
